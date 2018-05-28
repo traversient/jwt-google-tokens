@@ -5,6 +5,30 @@ defmodule Jwt do
     @invalid_signature_error {:error, "Invalid signature"}
     @key_id "kid"
     @alg "alg"
+    @timeutils Application.get_env(:jwt, :timeutils, Jwt.TimeUtils)
+    @five_minutes 5 * 60
+    @default_options %{:ignore_token_expiration => false, :time_window => @five_minutes}
+    @expired_token_error {:error, "Expired token."}
+    @incorrect_aud_error {:error, "Issuer aud mismatch."}
+
+
+
+    @doc """
+
+    """
+    def validate_claims(token,aud) do
+      {:ok,claims} = verify(token)
+
+      expiration_date = claims["exp"] - @five_minutes
+      now = @timeutils.get_system_time()
+
+      cond do
+        claims["aud"] != aud -> @incorrect_aud_error
+        now > expiration_date -> @expired_token_error
+        now < expiration_date -> {:ok, claims}
+      end
+
+    end
 
     @doc """
         Verifies a Google or Firebase generated JWT token against the current public certificates and returns the claims
